@@ -1,6 +1,8 @@
 # Grokking in Modular Arithmetic
 
-A portfolio-ready reproduction of the **grokking** phenomenon from the paper corresponding to your attached PDF (`arXiv:2201.02177`, Jan 6, 2022), built from the same core logic as your original `test.py`:
+A portfolio-ready reproduction of the **grokking** phenomenon from the 2021 paper *Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets* by Power et al. by OpenAI and Google DeepMind researchers. (https://arxiv.org/abs/2201.02177).
+
+The core logical components of the model trained herein are: 
 
 - one-hot encoded modular arithmetic inputs
 - MLP trained with manual NumPy backprop
