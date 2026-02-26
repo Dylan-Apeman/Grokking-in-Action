@@ -1,0 +1,31 @@
+{
+  "name": "perm_s5_grokking",
+  "task": {
+    "kind": "permutation",
+    "permutation_size": 5
+  },
+  "model": {
+    "hidden_dims": [4096, 4096, 4096],
+    "activation": "relu"
+  },
+  "optimizer": {
+    "name": "adamw",
+    "lr": 0.001,
+    "weight_decay": 0.003,
+    "beta1": 0.9,
+    "beta2": 0.999,
+    "eps": 1e-8
+  },
+  "training": {
+    "steps": 80000,
+    "batch_size": 512,
+    "train_fraction": 0.5,
+    "seed": 0,
+    "eval_every": 200,
+    "metric_threshold": 0.99
+  },
+  "logging": {
+    "verbose": true,
+    "save_curves": true
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "name": "mod_add_grokking",
+  "task": {
+    "kind": "modular",
+    "operation": "add",
+    "modulus": 97
+  },
+  "model": {
+    "hidden_dims": [4096, 4096, 4096],
+    "activation": "relu"
+  },
+  "optimizer": {
+    "name": "adamw",
+    "lr": 0.001,
+    "weight_decay": 0.01,
+    "beta1": 0.9,
+    "beta2": 0.999,
+    "eps": 1e-8
+  },
+  "training": {
+    "steps": 50000,
+    "batch_size": 512,
+    "train_fraction": 0.3,
+    "seed": 0,
+    "eval_every": 100,
+    "metric_threshold": 0.99
+  },
+  "logging": {
+    "verbose": true,
+    "save_curves": true
+  }
+}

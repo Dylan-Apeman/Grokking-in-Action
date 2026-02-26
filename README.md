@@ -1,89 +1,122 @@
-# Grokking in Modular Arithmetic
+# Grokking Experiment Reproduction Framework
 
-A portfolio-ready reproduction of the **grokking** phenomenon from the 2021 paper *Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets* by Power et al. by OpenAI and Google DeepMind researchers. (https://arxiv.org/abs/2201.02177).
+A config-driven framework for reproducing the key experiments from **Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets** (Power et al., 2021):
 
-The core logical components of the model trained herein are: 
+- Modular arithmetic classification (`a op b mod p`)
+- Permutation group composition (`S_n`)
 
-- one-hot encoded modular arithmetic inputs
-- MLP trained with manual NumPy backprop
-- train/validation dynamics tracked over long optimization
+The framework is lightweight (NumPy MLP + AdamW/SGD), deterministic by seed, and writes reproducible artifacts for each run.
 
-## What this shows
+## What You Get
 
-`grokking` is delayed generalization: the model can memorize training examples early, while validation performance stays near chance for a long period, then sharply improves later.
+- Reusable experiment package in `src/grokking`
+- Built-in presets for baseline vs weight-decay (grokking-friendly) setups
+- Single-run CLI (`run_experiment.py`)
+- Multi-seed sweep CLI (`run_suite.py`)
+- JSON configs under `configs/`
+- Artifacts per run:
+  - `config.json`
+  - `metrics.csv`
+  - `summary.json`
+  - `curves.png` (if `matplotlib` is available)
 
-This repo provides two presets:
-
-- `baseline`: no weight decay (tends to memorize and generalize poorly)
-- `grokking`: weight decay enabled (encourages delayed generalization)
-
-## Project structure
-
-- `run_experiment.py`: CLI runner with presets
-- `src/grokking/experiment.py`: dataset, model, training loop, plotting, metrics
-- `test.py`: short compatibility demo entrypoint
-- `tests/test_experiment.py`: unit tests for task/data invariants
-- `artifacts/`: generated metrics, summary JSON, and plots
-
-## Quick start
+## Quick Start
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+pip install -e .
 ```
 
-Run baseline:
+List presets:
 
 ```bash
-python3 run_experiment.py --preset baseline --steps 40000 --out artifacts/baseline
+python3 run_experiment.py --list-presets
 ```
 
-Run grokking setup:
+Run modular baseline:
 
 ```bash
-python3 run_experiment.py --preset grokking --steps 40000 --out artifacts/grokking
+python3 run_experiment.py \
+  --preset mod_add_baseline \
+  --out artifacts/mod_add_baseline
 ```
 
-Run a short demo (legacy `test.py`):
+Run modular grokking-style setup (weight decay enabled):
 
 ```bash
-python3 test.py
+python3 run_experiment.py \
+  --preset mod_add_grokking \
+  --out artifacts/mod_add_grokking
 ```
 
-Run tests:
+Run with config file:
+
+```bash
+python3 run_experiment.py \
+  --config configs/perm_s5_grokking.json \
+  --out artifacts/perm_s5_grokking
+```
+
+Override settings from CLI:
+
+```bash
+python3 run_experiment.py \
+  --preset mod_add_grokking \
+  --override training.steps=20000 \
+  --override training.seed=3 \
+  --override optimizer.weight_decay=0.02 \
+  --no-curves \
+  --out artifacts/custom_run
+```
+
+## Run Paper-Style Sweeps
+
+Run all built-in presets across multiple seeds:
+
+```bash
+python3 run_suite.py \
+  --presets mod_add_baseline,mod_add_grokking,perm_s5_baseline,perm_s5_grokking \
+  --seeds 0,1,2 \
+  --no-curves \
+  --out artifacts/sweeps/paper_suite
+```
+
+This writes:
+
+- `artifacts/sweeps/paper_suite/sweep_summary.csv`
+- `artifacts/sweeps/paper_suite/sweep_summary.json`
+- Per-run artifact folders at `.../<preset>/seed_<k>/`
+
+## Presets
+
+- `mod_add_baseline`
+- `mod_add_grokking`
+- `perm_s5_baseline`
+- `perm_s5_grokking`
+
+## Project Layout
+
+- `run_experiment.py`: single run entrypoint
+- `run_suite.py`: multi-seed sweep entrypoint
+- `configs/*.json`: reproducible experiment definitions
+- `src/grokking/config.py`: schema + presets + overrides
+- `src/grokking/tasks.py`: modular/permutation dataset builders
+- `src/grokking/model.py`: NumPy MLP classifier
+- `src/grokking/optimizer.py`: AdamW and SGD
+- `src/grokking/experiment.py`: train/eval loop + artifact writing
+- `src/grokking/sweeps.py`: sweep orchestration
+- `tests/`: task invariants + smoke tests
+
+## Testing
 
 ```bash
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-## Artifacts produced
+## Reproducibility Notes
 
-Each run writes:
-
-- `metrics.csv`: step-wise train/val loss and accuracy
-- `summary.json`: final metrics + detected memorization/generalization steps
-- `curves.png`: loss and accuracy curves for portfolio screenshots
-  - If `matplotlib` is unavailable, training still runs and exports `metrics.csv` + `summary.json`.
-
-## Results (40k steps)
-
-Side-by-side comparison from full runs:
-
-![Baseline vs Grokking (40k steps)](artifacts/results/baseline_vs_grokking_40k.png)
-
-Run summary (`M=97`, `train_fraction=0.3`, `seed=0`):
-
-| Setup | Weight Decay | Train Acc | Val Acc | Memorization Step | Generalization Step |
-|---|---:|---:|---:|---:|---:|
-| Baseline | 0.0 | 1.000 | 0.000 | 4600 | not reached |
-| Grokking preset | 0.001 | 1.000 | 0.000 | 7800 | not reached |
-
-In this seed/hyperparameter setting, both models fully memorize training data by 40k steps, but delayed generalization is not yet observed.
-
-## Notes on reproducibility
-
-- Default task: modular addition with modulus `97`.
-- Data split: random subset (`train_fraction=0.3`) of all pairs.
-- Minibatch SGD is used (`batch_size=512` by default).
-- Grokking timing is sensitive to seed and hyperparameters; if needed, increase `--steps`.
+- Runs are deterministic by `training.seed`.
+- Train/val split is generated once per run from the full Cartesian task table.
+- Grokking timing is sensitive to optimization hyperparameters and seed. For delayed generalization to clearly appear, increase `training.steps` and compare baseline vs weight-decay presets across multiple seeds.
